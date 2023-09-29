@@ -85,3 +85,24 @@ stages:
               azureSubscription: $(azureServiceConnectionId)
               appName: $(webAppName)
               package: $(Pipeline.Workspace)/drop/$(Build.BuildId).zip
+
+              - stage: Test
+  jobs:
+  - job: Test
+    dependsOn: Build
+    steps:
+    - script: |
+        python -m unittest discover tests
+      displayName: 'Run tests'
+
+      - stage: Monitor
+  jobs:
+  - job: Monitor
+    dependsOn: Deploy
+    steps:
+    - script: |
+        # Install Azure CLI
+        curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+        az extension add --name application-insights
+        az monitor app-insights component link --app myapp --resource-group myresourcegroup --api "/subscriptions/{subscription-id}/resourceGroups/{resource-group}/providers/microsoft.insights/components/{app-insights-component}" --verbose --yes
+      displayName: 'Configure Application Insights'
